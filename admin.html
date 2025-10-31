@@ -1,176 +1,69 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<link rel="icon" href="data:,">
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Dashboard - EFS</title>
-  <link rel="stylesheet" href="Mainpage.css">
-  <link rel="icon" href="data:,">
-  <style>
-    .nav-buttons { display: flex; gap: 12px; margin-bottom: 16px; }
-    .block { background: rgba(15,23,42,0.5); border: 1px solid rgba(59,130,246,0.25); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
-    .block-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-    .actions { display: flex; gap: 10px; }
-    .pill { padding: 4px 8px; border-radius: 999px; font-size: 12px; color: #cbd5e1; background: rgba(59,130,246,0.2); }
-    .hidden { display: none; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="glass-card">
-      <div class="header">
-        <h1>Admin Dashboard</h1>
-        <p class="subtitle">Review and approve requests</p>
+<script type="module">
+import API from './api.js';
+import DB from './db.js';
+
+function showSection(which){
+  document.getElementById('accountsSection').classList.toggle('hidden', which !== 'accounts');
+  document.getElementById('coursesSection').classList.toggle('hidden', which !== 'courses');
+}
+
+async function renderAccounts(){
+  const list = document.getElementById('accountsList');
+  list.innerHTML = '';
+  const pending = await API.getPendingAccounts().then(r => r.data);
+  if (!pending.length){ list.innerHTML = '<div class="pill">No pending account requests</div>'; return; }
+  pending.forEach(req => {
+    const div = document.createElement('div');
+    div.className = 'block';
+    div.innerHTML = `
+      <div class="block-header" style="gap:12px;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <img src="${req.photoBase64 || ''}" alt="photo" style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid rgba(59,130,246,0.3);background:rgba(15,23,42,0.4);" onerror="this.style.display='none'">
+          <strong>Student ID: ${req.sid}</strong>
+        </div>
+        <span class="pill">Pending</span>
       </div>
+      <div class="actions">
+        <button class="submit-btn" onclick="approveAccount('${req.sid}')">Approve</button>
+        <button class="cancel-btn submit-btn" onclick="rejectAccount('${req.sid}')">Reject</button>
+      </div>`;
+    list.appendChild(div);
+  });
+}
 
-      <div class="nav-buttons">
-        <button class="submit-btn" onclick="showSection('accounts')">New account request</button>
-        <button class="submit-btn" onclick="showSection('courses')">New course request</button>
-        <button class="submit-btn" onclick="normalLogin()">Normal login</button>
-      </div>
+window.approveAccount = async sid => {
+  await API.approveAccount(sid);
+  renderAccounts();
+};
+window.rejectAccount = async sid => {
+  await API.rejectAccount(sid);
+  renderAccounts();
+};
 
-      <div id="accountsSection">
-        <h3 style="color:#60a5fa; margin-bottom:12px;">Pending Account Requests</h3>
-        <div id="accountsList"></div>
-      </div>
+async function renderCourses(){
+  const list = document.getElementById('coursesList');
+  list.innerHTML = '';
+  const pending = await API.getPendingCourses().then(r => r.data);
+  if (!pending.length){ list.innerHTML = '<div class="pill">No pending course requests</div>'; return; }
+  pending.forEach(req => {
+    const div = document.createElement('div');
+    div.className = 'block';
+    div.innerHTML = `
+      <div class="block-header"><strong>${req.code} - ${req.title}</strong><span class="pill">Pending</span></div>
+      <div class="actions">
+        <button class="submit-btn" onclick="approveCourse('${req.code}')">Approve</button>
+        <button class="cancel-btn submit-btn" onclick="rejectCourse('${req.code}')">Reject</button>
+      </div>`;
+    list.appendChild(div);
+  });
+}
+window.approveCourse = async code => { await API.approveCourse(code); renderCourses(); };
+window.rejectCourse = async code => { await API.rejectCourse(code); renderCourses(); };
 
-      <div id="coursesSection" class="hidden">
-        <h3 style="color:#60a5fa; margin-bottom:12px;">Pending Course Requests</h3>
-        <div id="coursesList"></div>
-      </div>
-    </div>
-  </div>
+window.normalLogin = () => location.href = 'Mainpage.html';
 
-  <script>
-    async function normalLogin(){
-      const qs = new URLSearchParams(window.location.search);
-      const sid = qs.get('sid');
-      const pwd = qs.get('pwd');
-      const code = (qs.get('code') || '').toUpperCase().trim();
-      if (!sid || !pwd){
-        alert('Missing credentials. Please use Mainpage to enter Student ID and Password.');
-        window.location.href = 'Mainpage.html';
-        return;
-      }
-      try {
-        const resp = await fetch('/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sid, password: pwd }) });
-        const res = await resp.json();
-        if (!res.ok){ alert(res.error || 'Login failed'); return; }
-        if (code){
-          window.location.href = 'course-viewer.html?code=' + encodeURIComponent(code);
-        } else {
-          window.location.href = 'Mainpage.html?sid=' + encodeURIComponent(sid);
-        }
-      } catch (e){
-        alert('Backend not reachable. Start the server.');
-      }
-    }
-    function showSection(which){
-      document.getElementById('accountsSection').classList.toggle('hidden', which !== 'accounts');
-      document.getElementById('coursesSection').classList.toggle('hidden', which !== 'courses');
-    }
-
-    async function renderAccounts(){
-      const list = document.getElementById('accountsList');
-      list.innerHTML = '';
-      try {
-        const resp = await fetch('/admin/pending/accounts');
-        const res = await resp.json();
-        const pending = res?.data || [];
-        if (!pending.length){ list.innerHTML = '<div class="pill">No pending account requests</div>'; return; }
-        pending.forEach((req) => {
-        const div = document.createElement('div');
-        div.className = 'block';
-        div.innerHTML = `
-          <div class="block-header" style="gap:12px;">
-            <div style="display:flex; align-items:center; gap:12px;">
-              <img src="${req.photoPath || ''}" alt="photo" style="width:64px; height:64px; object-fit:cover; border-radius:8px; border:1px solid rgba(59,130,246,0.3); background:rgba(15,23,42,0.4);" onerror="this.style.display='none'">
-              <strong>Student ID: ${req.sid}</strong>
-            </div>
-            <span class="pill">Pending</span>
-          </div>
-          <div class="actions">
-            <button class="submit-btn" onclick="approveAccount('${req.sid}')">✓ Approve</button>
-            <button class="cancel-btn submit-btn" onclick="rejectAccount('${req.sid}')">✗ Reject</button>
-          </div>
-        `;
-        list.appendChild(div);
-        });
-      } catch (e){ list.innerHTML = '<div class="pill">Backend not reachable</div>'; }
-    }
-
-    async function approveAccount(sid){
-      try {
-        const resp = await fetch(`/admin/pending/accounts/${encodeURIComponent(sid)}/approve`, { method: 'POST' });
-        const res = await resp.json();
-        if (!res.ok) { alert(res.error || 'Failed to approve'); return; }
-        await renderAccounts();
-      } catch { alert('Backend not reachable.'); }
-    }
-
-    async function rejectAccount(sid){
-      try {
-        const resp = await fetch(`/admin/pending/accounts/${encodeURIComponent(sid)}/reject`, { method: 'POST' });
-        const res = await resp.json();
-        if (!res.ok) { alert(res.error || 'Failed to reject'); return; }
-        await renderAccounts();
-      } catch { alert('Backend not reachable.'); }
-    }
-
-    async function renderCourses(){
-      const list = document.getElementById('coursesList');
-      list.innerHTML = '';
-      try {
-        const resp = await fetch('/admin/pending/courses');
-        const res = await resp.json();
-        const pending = res?.data || [];
-        if (!pending.length){ list.innerHTML = '<div class="pill">No pending course requests</div>'; return; }
-        pending.forEach((req) => {
-        const div = document.createElement('div');
-        div.className = 'block';
-        div.innerHTML = `
-          <div class="block-header">
-            <strong>${req.code} - ${req.title}</strong>
-            <span class="pill">Pending</span>
-          </div>
-          <div style="color:#cbd5e1; font-size:14px; margin-bottom:10px;">
-            <div><strong>Description:</strong> ${req.description || '-'} </div>
-            <div><strong>Materials:</strong> ${req.materials || '-'} </div>
-            <div><strong>Instructor:</strong> ${req.instructor || '-'} </div>
-            <div><strong>Duration:</strong> ${req.duration || '-'} weeks</div>
-          </div>
-          <div class="actions">
-            <button class="submit-btn" onclick="approveCourse('${req.code}')">✓ Approve</button>
-            <button class="cancel-btn submit-btn" onclick="rejectCourse('${req.code}')">✗ Reject</button>
-          </div>
-        `;
-        list.appendChild(div);
-        });
-      } catch (e){ list.innerHTML = '<div class="pill">Backend not reachable</div>'; }
-    }
-
-    async function approveCourse(code){
-      try {
-        const resp = await fetch(`/admin/pending/courses/${encodeURIComponent(code)}/approve`, { method: 'POST' });
-        const res = await resp.json();
-        if (!res.ok) { alert(res.error || 'Failed to approve'); return; }
-        await renderCourses();
-      } catch { alert('Backend not reachable.'); }
-    }
-
-    async function rejectCourse(code){
-      try {
-        const resp = await fetch(`/admin/pending/courses/${encodeURIComponent(code)}/reject`, { method: 'POST' });
-        const res = await resp.json();
-        if (!res.ok) { alert(res.error || 'Failed to reject'); return; }
-        await renderCourses();
-      } catch { alert('Backend not reachable.'); }
-    }
-
-    // initial
-    renderAccounts();
-    renderCourses();
-  </script>
-</body>
-</html>
+// init
+showSection('accounts');
+renderAccounts();
+renderCourses();
+</script>

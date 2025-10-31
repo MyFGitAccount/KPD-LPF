@@ -1,103 +1,43 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<link rel="icon" href="data:,">
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Create Account - EFS</title>
-  <link rel="stylesheet" href="Mainpage.css">
-  <link rel="icon" href="data:,">
-  <style>
-    .upload-preview { margin-top: 12px; display: flex; gap: 12px; align-items: center; }
-    .upload-preview img { width: 80px; height: 80px; object-fit: cover; border-radius: 10px; border: 2px solid rgba(59,130,246,0.3); }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="glass-card">
-      <div class="header">
-        <h1>Create Account</h1>
-        <p class="subtitle">Submit your details. Admin approval is required before you can log in.</p>
-      </div>
+<script type="module">
+import API from './api.js';
 
-      <form id="createForm">
-        <div class="input-group">
-          <label for="sid"><span class="label-text">Student ID</span></label>
-          <input id="sid" type="text" placeholder="Enter student ID" required>
-        </div>
-        <div class="input-group">
-          <label for="pwd"><span class="label-text">Password</span></label>
-          <input id="pwd" type="password" placeholder="Enter password" required>
-        </div>
-        <div class="input-group">
-          <label for="photo"><span class="label-text">Student Card Photo</span></label>
-          <input id="photo" type="file" accept="image/*" required>
-          <div class="upload-preview" id="preview" style="display:none;">
-            <img id="previewImg" alt="preview">
-            <span class="label-hint">Selected photo preview</span>
-          </div>
-        </div>
+const photoInput = document.getElementById('photo');
+const preview = document.getElementById('preview');
+const previewImg = document.getElementById('previewImg');
 
-        <button type="submit" class="submit-btn" id="submitBtn"><span class="btn-text">Submit</span></button>
-        <button type="button" class="cancel-btn submit-btn" style="margin-top:12px;" onclick="window.location.href='Mainpage.html'">Back</button>
-      </form>
-    </div>
-  </div>
+photoInput.addEventListener('change', () => {
+  const file = photoInput.files?.[0];
+  if (!file) { preview.style.display = 'none'; return; }
+  const reader = new FileReader();
+  reader.onload = e => { previewImg.src = e.target.result; preview.style.display = 'flex'; };
+  reader.readAsDataURL(file);
+});
 
-  <script>
-    const photoInput = document.getElementById('photo');
-    const preview = document.getElementById('preview');
-    const previewImg = document.getElementById('previewImg');
+document.getElementById('createForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const sid = document.getElementById('sid').value.trim();
+  const pwd = document.getElementById('pwd').value;
+  const file = photoInput.files?.[0];
+  if (!sid || !pwd || !file) return;
 
-    photoInput.addEventListener('change', () => {
-      const file = photoInput.files?.[0];
-      if (!file) { preview.style.display = 'none'; return; }
-      const reader = new FileReader();
-      reader.onload = e => { previewImg.src = e.target.result; preview.style.display = 'flex'; };
-      reader.readAsDataURL(file);
-    });
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.querySelector('.btn-text').textContent = 'Waiting';
 
-    document.getElementById('createForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const sid = document.getElementById('sid').value.trim();
-      const pwd = document.getElementById('pwd').value;
-      const file = photoInput.files?.[0];
-      if (!sid || !pwd || !file) return;
-      // Check if SID exists or pending
-      try {
-        const check = await fetch(`/accounts/check/${encodeURIComponent(sid)}`);
-        const res = await check.json();
-        if (res.ok && res.exists) {
-          const where = res.where === 'users' ? 'an existing account' : 'a pending request';
-          alert(`This Student ID already has ${where}.`);
-          return;
-        }
-      } catch (err) {
-        // proceed; server check failed but we will also get 409 on submit if duplicate
-      }
-      const btn = document.getElementById('submitBtn');
-      btn.disabled = true;
-      btn.querySelector('.btn-text').textContent = 'Waiting';
-      try {
-        const fd = new FormData();
-        fd.append('sid', sid);
-        fd.append('password', pwd);
-        fd.append('photo', file);
-        const resp = await fetch('/accounts', { method: 'POST', body: fd });
-        const res = await resp.json();
-        if (!res.ok) {
-          alert(res.error || 'Failed to submit account request');
-          btn.disabled = false;
-          btn.querySelector('.btn-text').textContent = 'Submit';
-          return;
-        }
-        // stay on page; button remains Waiting as specified
-      } catch (err) {
-        alert('Backend not reachable. Start the server.');
-        btn.disabled = false;
-        btn.querySelector('.btn-text').textContent = 'Submit';
-      }
-    });
-  </script>
-</body>
-</html>
+  // ---- read photo as Base64 ----
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    const photoBase64 = ev.target.result;
+    const res = await API.createAccount({ sid, password: pwd, photoBase64 });
+    if (!res.ok) {
+      alert(res.error || 'Failed');
+      btn.disabled = false;
+      btn.querySelector('.btn-text').textContent = 'Submit';
+      return;
+    }
+    alert('Account request submitted! Admin must approve.');
+    // stay on page – data already in localStorage
+  };
+  reader.readAsDataURL(file);
+});
+</script>
