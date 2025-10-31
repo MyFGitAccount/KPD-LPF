@@ -1,0 +1,61 @@
+body {
+    font-family: 'Times New Roman', Times, serif;
+    margin: 20px;
+    background-color: black;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    /* Ensures body takes full viewport height */
+}
+
+form {
+    text-align: center;
+    /* Centers inline or inline-block children */
+}
+
+label {
+    display: block;
+    margin-bottom: 10px;
+    text-align: center;
+    /* Centers the label text */
+}
+
+input {
+    padding: 8px;
+    border: 2px solid #ccc;
+    border-radius: 4px;
+    display: block;
+    /* Ensures input behaves as a block element */
+    margin: 0 auto 10px auto;
+    /* Centers horizontally with auto margins */
+    width: 200px;
+    /* Optional: Sets a fixed width for better centering */
+}
+
+input:invalid {
+    border-color: red;
+}
+
+input:valid {
+    border-color: green;
+}
+
+button {
+    padding: 8px 16px;
+    background-color: ;
+    /* Note: This is empty; consider setting a color like #fff */
+    color: black;
+    border: 2px solid white;
+    /* Changed to 'border' with a value */
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 10px;
+    display: inline-block;
+    /* Ensures button can be centered */
+}
+
+button:hover {
+    background-color: darkblue;
+}
