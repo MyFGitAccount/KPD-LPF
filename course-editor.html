@@ -1,19 +1,23 @@
 <script type="module">
 import API from './api.js';
 
-const urlParams = new URLSearchParams(location.search);
-const courseCode = urlParams.get('code');
+let coursesDatabase = {};
 
-async function loadCourses() {
-  const courses = await API.getCourses().then(r => r.data);
-  if (courseCode && courses[courseCode]) {
+async function loadCoursesDatabase() {
+  const res = await API.getCourses();
+  coursesDatabase = res.data || {};
+  console.log('Courses loaded (editor):', Object.keys(coursesDatabase));
+
+  const urlParams = new URLSearchParams(location.search);
+  const courseCode = urlParams.get('code');
+  if (courseCode && coursesDatabase[courseCode]) {
     document.getElementById('course_code').value = courseCode;
     document.getElementById('course_code').readOnly = true;
-    document.getElementById('course_title').value = courses[courseCode];
+    document.getElementById('course_title').value = coursesDatabase[courseCode];
     document.getElementById('editorSubtitle').textContent = `Edit: ${courseCode}`;
   }
 }
-loadCourses();
+loadCoursesDatabase();
 
 document.getElementById('editorForm').addEventListener('submit', async e => {
   e.preventDefault();
@@ -22,9 +26,11 @@ document.getElementById('editorForm').addEventListener('submit', async e => {
   if (!code || !title) return alert('Fill both fields');
   const res = await API.requestCourse({ code, title });
   if (!res.ok) return alert(res.error || 'Failed');
-  alert(`Course request for ${code} submitted.`);
+  alert(`Request for ${code} submitted.`);
   location.href = 'Mainpage.html';
 });
 
-function cancelEdit(){ if(confirm('Discard changes?')) location.href='Mainpage.html'; }
+function cancelEdit() {
+  if (confirm('Discard changes?')) location.href = 'Mainpage.html';
+}
 </script>

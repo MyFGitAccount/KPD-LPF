@@ -1,21 +1,32 @@
 <script type="module">
 import API from './api.js';
 
-async function loadCourses() {
-  const courses = await API.getCourses().then(r => r.data);
-  const urlParams = new URLSearchParams(location.search);
-  const code = urlParams.get('code');
-  if (!code || !courses[code]) return location.href = 'Mainpage.html';
-  document.getElementById('courseCode').textContent = code;
-  document.getElementById('courseTitle').textContent = courses[code];
-}
-loadCourses();
+let coursesDatabase = {};
 
-function selectTab(tab){
+async function loadCoursesDatabase() {
+  const res = await API.getCourses();
+  coursesDatabase = res.data || {};
+  displayCourseInfo();
+}
+loadCoursesDatabase();
+
+function displayCourseInfo() {
+  const urlParams = new URLSearchParams(location.search);
+  const courseCode = urlParams.get('code');
+  if (!courseCode || !coursesDatabase[courseCode]) {
+    alert('Course not found.');
+    location.href = 'Mainpage.html';
+    return;
+  }
+  document.getElementById('courseCode').textContent = courseCode;
+  document.getElementById('courseTitle').textContent = coursesDatabase[courseCode];
+}
+
+function selectTab(tab) {
   const area = document.getElementById('contentArea');
   const sections = {
     desc: '<h3>Course Description</h3><p>Details will be populated here.</p>',
-    materials: '<h3>Course Materials</h3><p>Links/files will appear here.</p>',
+    materials: '<h3>Course Materials</h3><p>Links and files will appear here.</p>',
     mock: '<h3>Mock Exercise</h3><p>Practice exercises will be shown here.</p>',
     timetable: '<h3>Time Table</h3><p>Schedule will be listed here.</p>'
   };
