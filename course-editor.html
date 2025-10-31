@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<link rel="icon" href="data:,">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Editor - EFS Learning Platform</title>
+    <link rel="stylesheet" href="Mainpage.css">
+    <link rel="icon" href="data:,">
+    <style>
+        /* Hide scrollbars */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+
+        html,
+        body {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .editor-container {
+            max-width: 900px;
+        }
+
+        .form-section {
+            margin-bottom: 32px;
+        }
+
+        .form-section h3 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #60a5fa;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .form-section h3::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: linear-gradient(135deg, #60a5fa, #3b82f6);
+            border-radius: 2px;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 14px 18px;
+            border: 2px solid rgba(59, 130, 246, 0.3);
+            border-radius: 12px;
+            background-color: rgba(15, 23, 42, 0.9);
+            color: #ffffff;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+            background-color: rgba(15, 23, 42, 1);
+        }
+
+        input[type="url"],
+        input[type="number"] {
+            width: 100%;
+            padding: 14px 18px;
+            border: 2px solid rgba(59, 130, 246, 0.3);
+            border-radius: 12px;
+            background-color: rgba(15, 23, 42, 0.9);
+            color: #ffffff;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        input[type="url"]:focus,
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+            background-color: rgba(15, 23, 42, 1);
+        }
+
+        .editor-action-buttons {
+            display: flex;
+            gap: 16px;
+            margin-top: 32px;
+        }
+
+        .save-btn {
+            flex: 1;
+            padding: 14px 20px;
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            font-size: 15px;
+            min-width: 140px;
+        }
+
+        .cancel-btn {
+            padding: 14px 20px;
+            background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+            font-size: 15px;
+            min-width: 120px;
+        }
+
+        .save-btn svg,
+        .cancel-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container editor-container">
+        <div class="glass-card">
+            <div class="header">
+                <h1>Course Editor</h1>
+                <p class="subtitle" id="editorSubtitle">Add new course information</p>
+            </div>
+
+            <form id="editorForm">
+                <div class="input-group">
+                    <label for="course_code">
+                        <span class="label-text">Course Code</span>
+                        <span class="label-hint">e.g., HD101, AD113</span>
+                    </label>
+                    <input type="text" id="course_code" name="code" placeholder="Enter course code" required>
+                </div>
+
+                <div class="form-section">
+                    <h3>Basic Information</h3>
+                    <div class="input-group">
+                        <label for="course_title">
+                            <span class="label-text">Course Title</span>
+                        </label>
+                        <input type="text" id="course_title" name="title" placeholder="Enter course title" required>
+                    </div>
+                </div>
+
+                <div class="editor-action-buttons">
+                    <button type="submit" class="submit-btn save-btn">
+                        <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M17 2C17 1.44772 16.5523 1 16 1H8C7.44772 1 7 1.44772 7 2V18C7 18.5523 7.44772 19 8 19H16C16.5523 19 17 18.5523 17 18V2Z"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            <path d="M7 5H5C3.89543 5 3 5.89543 3 7V17C3 18.1046 3.89543 19 5 19H7V18V5Z"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            <path d="M10 8H14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                            <path d="M10 12H14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        </svg>
+                        <span>Add Course</span>
+                    </button>
+
+                    <button type="button" class="cancel-btn submit-btn" onclick="cancelEdit()">
+                        <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M4 4L16 16M4 16L16 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                        </svg>
+                        <span>Cancel</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let coursesDatabase = {};
+
+        // Load URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const courseCode = urlParams.get('code');
+
+        // Load courses database
+        async function loadCoursesDatabase() {
+            try {
+                const response = await fetch('/courses');
+                const data = await response.json();
+                coursesDatabase = data?.data || {};
+                console.log('Courses database loaded successfully');
+
+                // Pre-fill form if editing existing course
+                if (courseCode && coursesDatabase[courseCode]) {
+                    document.getElementById('course_code').value = courseCode;
+                    document.getElementById('course_code').readOnly = true;
+                    document.getElementById('course_title').value = coursesDatabase[courseCode];
+                    document.getElementById('editorSubtitle').textContent = `Edit: ${courseCode}`;
+                }
+            } catch (error) {
+                console.error('Error loading courses database:', error);
+            }
+        }
+
+        // Form submission
+        document.getElementById('editorForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const code = document.getElementById('course_code').value.toUpperCase().trim();
+            const title = document.getElementById('course_title').value;
+
+            if (!code || !title) {
+                alert('Please fill in course code and title');
+                return;
+            }
+
+            // Submit to backend for admin approval
+            try {
+                const resp = await fetch('/courses/requests', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code, title })
+                });
+                const res = await resp.json();
+                if (!res.ok) { alert(res.error || 'Failed to submit course request'); return; }
+                alert(`Course request for ${code} submitted for admin approval.`);
+                window.location.href = 'Mainpage.html';
+            } catch (err) {
+                alert('Backend not reachable. Start the server.');
+            }
+        });
+
+        function cancelEdit() {
+            if (confirm('Are you sure you want to cancel? Unsaved changes will be lost.')) {
+                window.location.href = 'Mainpage.html';
+            }
+        }
+
+        // Load database on page load
+        loadCoursesDatabase();
+
+        // Scroll button functionality - only scroll down
+        function handleScroll() {
+            window.scrollBy({ top: 300, behavior: 'smooth' });
+        }
+
+        window.addEventListener('scroll', function () {
+            const btn = document.getElementById('scrollBtn');
+            if (window.scrollY > 100) {
+                btn.classList.add('visible');
+            } else {
+                btn.classList.remove('visible');
+            }
+        });
+    </script>
+
+    <!-- Scroll Button -->
+    <button class="scroll-btn" id="scrollBtn" onclick="handleScroll()">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M5 15L12 8L19 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" />
+        </svg>
+    </button>
+</body>
+
+</html>

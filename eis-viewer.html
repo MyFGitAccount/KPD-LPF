@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<link rel="icon" href="data:,">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EIS - PDF Analyzer</title>
+    <link rel="stylesheet" href="Mainpage.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        // Configure PDF.js worker
+        if (window['pdfjsLib']) {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+    </script>
+    <style>
+        /* Hide scrollbars */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+
+        html,
+        body {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .eis-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .uploader {
+            border: 2px dashed rgba(59, 130, 246, 0.4);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            background: rgba(15, 23, 42, 0.6);
+        }
+
+        .uploader input[type="file"] {
+            display: block;
+            margin: 12px auto 0;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+            justify-content: center;
+        }
+
+        .scan-btn {
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .scan-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .summary {
+            margin-top: 24px;
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .summary h2 {
+            color: #60a5fa;
+            margin-bottom: 12px;
+            font-size: 20px;
+        }
+
+        .summary pre {
+            white-space: pre-wrap;
+            color: #cbd5e1;
+        }
+
+        .status {
+            color: #94a3b8;
+            text-align: center;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container eis-container">
+        <div class="glass-card">
+            <div class="header">
+                <button class="back-btn" onclick="window.location.href='Mainpage.html'"
+                    style="position: relative; left: 0; top: 0; margin-bottom: 24px;">
+                    <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12.5 7.5L8.5 10L12.5 12.5" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    Back
+                </button>
+                <h1>EIS - PDF Analyzer</h1>
+                <p class="subtitle">Upload PDF(s), then click Scan to extract and summarize content</p>
+            </div>
+
+            <div class="uploader">
+                <p>Select one or more PDFs to analyze</p>
+                <input id="pdfInput" type="file" accept="application/pdf" multiple>
+                <div style="margin-top: 12px;">
+                    <input id="apiKey" type="password" placeholder="OpenAI API Key (optional for AI summary)"
+                        style="width: 100%; max-width: 520px; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(59,130,246,0.4); background: rgba(15,23,42,0.6); color: #e5e7eb;">
+                </div>
+                <div class="actions">
+                    <button id="scanBtn" class="scan-btn" disabled>Scan</button>
+                </div>
+                <div id="status" class="status"></div>
+                <div class="status" style="margin-top:6px; font-size:12px;">Tip: If you provide an API key, the summary
+                    will use AI; otherwise a heuristic summary is shown. Your key is only used locally in your browser.
+                </div>
+            </div>
+
+            <div id="summary" class="summary" style="display:none;">
+                <h2>Summary</h2>
+                <pre id="summaryText"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const input = document.getElementById('pdfInput');
+        const scanBtn = document.getElementById('scanBtn');
+        const statusEl = document.getElementById('status');
+        const summaryBox = document.getElementById('summary');
+        const summaryText = document.getElementById('summaryText');
+
+        input.addEventListener('change', () => {
+            scanBtn.disabled = input.files.length === 0;
+            statusEl.textContent = input.files.length ? `${input.files.length} file(s) selected` : '';
+        });
+
+        scanBtn.addEventListener('click', async () => {
+            if (!window['pdfjsLib']) {
+                alert('PDF.js failed to load. Please check your internet connection.');
+                return;
+            }
+            scanBtn.disabled = true;
+            statusEl.textContent = 'Scanning PDFs...';
+            summaryBox.style.display = 'none';
+            summaryText.textContent = '';
+
+            try {
+                const texts = [];
+                for (const file of input.files) {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                    let fileText = '';
+                    for (let p = 1; p <= pdf.numPages; p++) {
+                        const page = await pdf.getPage(p);
+                        const content = await page.getTextContent();
+                        const strings = content.items.map(item => item.str);
+                        fileText += strings.join(' ') + '\n';
+                    }
+                    texts.push(`FILE: ${file.name}\n` + fileText.trim());
+                }
+
+                const combined = texts.join('\n\n---\n\n');
+
+                const apiKey = (document.getElementById('apiKey').value || '').trim();
+                let summary = '';
+                if (apiKey) {
+                    statusEl.textContent = 'Creating AI summary...';
+                    try {
+                        summary = await summarizeWithOpenAI(combined, apiKey);
+                    } catch (aiErr) {
+                        console.warn('AI summary failed, falling back to heuristic:', aiErr);
+                        statusEl.textContent = 'AI summary failed. Showing heuristic summary.';
+                        summary = createHeuristicSummary(combined);
+                    }
+                } else {
+                    summary = createHeuristicSummary(combined);
+                }
+                summaryText.textContent = summary;
+                summaryBox.style.display = 'block';
+                statusEl.textContent = 'Scan complete.';
+            } catch (err) {
+                console.error(err);
+                statusEl.textContent = 'Failed to scan PDFs.';
+                alert('An error occurred while processing the PDFs.');
+            } finally {
+                scanBtn.disabled = false;
+            }
+        });
+
+        function createHeuristicSummary(text) {
+            // Simple heuristic summarization by headings and bullet extraction
+            const lines = text.split(/\n+/).map(l => l.trim()).filter(Boolean);
+            const bullets = lines.filter(l => /^[•\-*\d)\]]\s+/.test(l)).slice(0, 20);
+            const headings = lines.filter(l => /^(abstract|introduction|overview|summary|conclusion|results|methods|objective)s?/i.test(l)).slice(0, 10);
+
+            let keyTerms = {};
+            const words = text.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 3);
+            for (const w of words) keyTerms[w] = (keyTerms[w] || 0) + 1;
+            const frequent = Object.entries(keyTerms).sort((a, b) => b[1] - a[1]).slice(0, 20).map(e => e[0]).join(', ');
+
+            return (
+                `Summary (heuristic):\n\n` +
+                `${headings.length ? 'Detected headings:\n- ' + headings.join('\n- ') + '\n\n' : ''}` +
+                `${bullets.length ? 'Key bullet points:\n- ' + bullets.join('\n- ') + '\n\n' : ''}` +
+                `Frequent terms: ${frequent}`
+            );
+        }
+
+        async function summarizeWithOpenAI(text, apiKey) {
+            const maxChars = 18000;
+            const truncated = text.length > maxChars ? text.slice(0, maxChars) : text;
+
+            const systemPrompt = `You are an expert technical summarizer. Produce a concise, faithful summary of the provided document set.\nReturn sections:\n- Overview\n- Key Points\n- Entities/Terms\n- Equations (if any)\n- Action Items (if any)\nKeep it under 300 words.`;
+            const userPrompt = `Documents (possibly concatenated):\n\n${truncated}`;
+
+            const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4o-mini',
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: userPrompt }
+                    ],
+                    temperature: 0.2
+                })
+            });
+
+            if (!resp.ok) {
+                const errText = await resp.text();
+                throw new Error(`OpenAI API error: ${resp.status} ${errText}`);
+            }
+            const data = await resp.json();
+            const content = data.choices?.[0]?.message?.content?.trim();
+            if (!content) throw new Error('No content returned by OpenAI');
+            return content;
+        }
+    </script>
+</body>
+
+</html>
+
+
