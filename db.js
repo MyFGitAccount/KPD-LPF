@@ -10,15 +10,15 @@ const DB = {
   _get(key, fallback = {}) {
     try {
       const raw = localStorage.getItem(key);
-      return raw ? JSON.parse(raw) : fallback;
-    } catch {
+      if (!raw) return fallback;
+      const parsed = JSON.parse(raw);
+      return parsed !== null ? parsed : fallback;
+    } catch (err) {
+      console.warn(`Corrupted data in localStorage key: ${key}`, err);
+      localStorage.removeItem(key); // clean up
       return fallback;
     }
-  },
-  _set(key, value) {
-    localStorage.setItem(key, JSON.stringify(value));
-  },
-
+  }
   // ---- users -------------------------------------------------
   getUsers() { return this._get(this.USERS, {}); },
   setUsers(u) { this._set(this.USERS, u); },

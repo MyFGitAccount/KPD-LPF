@@ -4,8 +4,14 @@ import API from './api.js';
 let coursesDatabase = {};
 
 async function loadCoursesDatabase() {
-  const r = await API.getCourses();
-  coursesDatabase = r.data || {};
+  try {
+    const res = await API.getCourses();
+    coursesDatabase = res.data || {};
+    console.log('Courses loaded:', Object.keys(coursesDatabase));
+  } catch (e) {
+    console.error('Failed to load courses', e);
+    coursesDatabase = {};
+  }
 }
 loadCoursesDatabase();
 
@@ -14,7 +20,10 @@ function showMessage(msg, type){
   el.textContent = msg;
   el.className = 'validation-message ' + type;
 }
-function validateCourseCode(code){ return coursesDatabase[code.toUpperCase().trim()] || null; }
+
+function validateCourseCode(code){
+  return coursesDatabase[code.toUpperCase().trim()] || null;
+}
 
 document.getElementById('courseForm').addEventListener('submit', async e => {
   e.preventDefault();
@@ -22,18 +31,16 @@ document.getElementById('courseForm').addEventListener('submit', async e => {
   const pwd = document.getElementById('password').value;
   const code = document.getElementById('course_id').value.trim().toUpperCase();
 
-  // ---- LOGIN ----
   const auth = await API.login({ sid, password: pwd });
-  if (!auth.ok) return showMessage('Login failed', 'error');
+  if (!auth.ok) return showMessage('Login failed: ' + (auth.error || ''), 'error');
   if (auth.role === 'admin'){
     location.href = `admin.html?sid=${sid}&pwd=${pwd}&code=${code}`;
     return;
   }
 
-  // ---- COURSE ----
   const title = validateCourseCode(code);
   if (title){
-    showMessage('Valid course! Loading…', 'success');
+    showMessage('Valid! Loading...', 'success');
     const target = code === 'EIS' ? 'eis-viewer.html' : `course-viewer.html?code=${encodeURIComponent(code)}`;
     setTimeout(() => location.href = target, 800);
   } else {
@@ -42,19 +49,19 @@ document.getElementById('courseForm').addEventListener('submit', async e => {
   }
 });
 
-// real-time validation
+// Real-time validation
 document.getElementById('course_id').addEventListener('input', function(){
-  const code = this.value.trim();
+  const code = this.value.trim().toUpperCase();
   const msg = document.getElementById('validationMessage');
   const addBtn = document.getElementById('addCourseBtn');
   if (!code){ msg.textContent=''; addBtn.style.display='none'; return; }
   const title = validateCourseCode(code);
   if (title){ showMessage(`${title}`, 'success'); addBtn.style.display='none'; }
-  else if (code.length>=3){ showMessage('Course does not exist.', 'error'); addBtn.style.display='flex'; }
+  else if (code.length>=3){ showMessage('Course not found.', 'error'); addBtn.style.display='flex'; }
   else addBtn.style.display='none';
 });
 
-// pre-fill from admin "Normal login"
+// Pre-fill from admin
 const qs = new URLSearchParams(location.search);
 const sid = qs.get('sid'), pwd = qs.get('pwd');
 if(sid) document.getElementById('student_id').value = sid;
