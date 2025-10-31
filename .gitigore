@@ -1,0 +1,19 @@
+# Node modules
+node_modules/
+
+# Data folder (your database)
+data/
+
+# Uploads
+uploads/
+
+# Environment
+.env
+*.log
+
+# Vercel
+.vercel
+
+# OS
+.DS_Store
+Thumbs.db
