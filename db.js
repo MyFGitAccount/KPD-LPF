@@ -1,4 +1,3 @@
-// db.js  –  pure client-side, works in any browser
 const DB = {
   // keys
   USERS: 'efs_users',
@@ -18,7 +17,8 @@ const DB = {
       localStorage.removeItem(key); // clean up
       return fallback;
     }
-  }
+  }, // ← this comma was missing
+
   // ---- users -------------------------------------------------
   getUsers() { return this._get(this.USERS, {}); },
   setUsers(u) { this._set(this.USERS, u); },
@@ -45,4 +45,5 @@ const DB = {
     return bcrypt.compareSync(pwd, hash);
   },
 };
+
 export default DB;
