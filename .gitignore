@@ -1,0 +1,20 @@
+# Database & user data
+data/
+uploads/
+
+# Node modules
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Environment
+.env
+.env.local
+
+# Vercel
+.vercel
+
+# OS
+.DS_Store
+Thumbs.db

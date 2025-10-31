@@ -1,85 +1,169 @@
-<script type="module">
-import API from './api.js';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="icon" href="data:,">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EFS – Learning Platform</title>
+  <link rel="stylesheet" href="Mainpage.css">
+  <link rel="icon" href="data:,">
+</head>
+<body>
+  <div class="container">
+    <div class="glass-card">
+      <div class="header">
+        <h1>Welcome to EFS</h1>
+        <p class="subtitle">Enter your course code to get started</p>
+      </div>
 
-document.addEventListener('DOMContentLoaded', () => {
-  let coursesDatabase = {};
+      <form id="courseForm">
+        <div class="input-group">
+          <label for="course_id"><span class="label-text">Course Code</span>
+            <span class="label-hint">e.g., AD113, HD101</span></label>
+          <input type="text" id="course_id" placeholder="Enter course code" required>
+          <div class="validation-message" id="validationMessage"></div>
+        </div>
 
-  async function loadCoursesDatabase() {
+        <div class="input-group" id="loginSection">
+          <label for="student_id"><span class="label-text">Student ID</span></label>
+          <input type="text" id="student_id" placeholder="Enter student ID" required>
+
+          <label for="password" style="margin-top:12px;">
+            <span class="label-text">Password</span></label>
+          <input type="password" id="password" placeholder="Enter password" required>
+
+          <button type="button" class="add-course-btn" id="createAccountBtn"
+                  onclick="window.location.href='account-create.html'"
+                  style="margin-top:16px;">
+            <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M10 6V10M10 10V14M10 10H14M10 10H6M19 10C19 14.9706 14.9706 19 10 19C5.02944 19 1 14.9706 1 10C1 5.02944 5.02944 1 10 1C14.9706 1 19 5.02944 19 10Z"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>Create Account</span>
+          </button>
+        </div>
+
+        <button type="submit" class="submit-btn">
+          <span class="btn-text">Login</span>
+          <svg class="btn-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </form>
+
+      <button id="addCourseBtn" class="add-course-btn" style="display:none;"
+              onclick="redirectToEditor()">
+        <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M10 6V10M10 10V14M10 10H14M10 10H6M19 10C19 14.9706 14.9706 19 10 19C5.02944 19 1 14.9706 1 10C1 5.02944 5.02944 1 10 1C14.9706 1 19 5.02944 19 10Z"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Create a new course</span>
+      </button>
+    </div>
+  </div>
+
+  <button class="scroll-btn" id="scrollBtn" onclick="handleScroll()">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M5 15L12 8L19 15" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
+
+  <script>
+    // Scroll button (down only)
+  function handleScroll() { window.scrollBy({top:300,behavior:'smooth'}); }
+  window.addEventListener('scroll',()=>{document.getElementById('scrollBtn')?.classList.toggle('visible',window.scrollY>100);});
+  </script>
+  <script>
+    let coursesDatabase = {};
+    
+    async function loadCoursesDatabase() {
     try {
-      const res = await API.getCourses();
-      coursesDatabase = res.data || {};
-      console.log('Courses loaded:', Object.keys(coursesDatabase));
-    } catch (e) {
-      console.error('Failed to load courses', e);
-      coursesDatabase = {};
+        const r = await fetch('/courses');  // ← FIXED: Use API, not static file
+        const d = await r.json();
+        if (d.ok) coursesDatabase = d.data || {};
+        else console.error('Failed to load courses:', d);
+      } catch (e) { console.error('DB load error', e); }
     }
-  }
-  loadCoursesDatabase();
+    loadCoursesDatabase();
 
-  function showMessage(msg, type){
-    const el = document.getElementById('validationMessage');
-    if (el) {
+    function showMessage(msg, type) {
+      const el = document.getElementById('validationMessage');
       el.textContent = msg;
       el.className = 'validation-message ' + type;
     }
-  }
 
-  function validateCourseCode(code){
-    return coursesDatabase[code.toUpperCase().trim()] || null;
-  }
+    function validateCourseCode(code) {
+      return coursesDatabase[code.toUpperCase().trim()] || null;
+    }
 
-  const courseForm = document.getElementById('courseForm');
-  if (courseForm) {
-    courseForm.addEventListener('submit', async e => {
+    document.getElementById('courseForm').addEventListener('submit', async e => {
       e.preventDefault();
-      const sid = document.getElementById('student_id')?.value.trim();
-      const pwd = document.getElementById('password')?.value;
-      const code = document.getElementById('course_id')?.value.trim().toUpperCase();
+      const sid = document.getElementById('student_id').value.trim();
+      const pwd = document.getElementById('password').value;
+      const code = document.getElementById('course_id').value.trim().toUpperCase();
 
-      const auth = await API.login({ sid, password: pwd });
-      if (!auth.ok) return showMessage('Login failed: ' + (auth.error || ''), 'error');
-      if (auth.role === 'admin'){
-        location.href = `admin.html?sid=${sid}&pwd=${pwd}&code=${code}`;
+      // ---- LOGIN FIRST ----
+      try {
+        const resp = await fetch('/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sid, password: pwd })
+        });
+        const auth = await resp.json();
+        if (!auth.ok) { showMessage('✗ ' + (auth.error || 'Login failed'), 'error'); return; }
+        if (auth.role === 'admin') {
+          window.location.href = `admin.html?sid=${sid}&pwd=${pwd}&code=${code}`;
+          return;
+        }
+      } catch (_) {
+        showMessage('✗ Backend not reachable', 'error');
         return;
       }
 
+      // ---- COURSE CHECK ----
       const title = validateCourseCode(code);
-      if (title){
-        showMessage('Valid! Loading...', 'success');
+      if (title) {
+        showMessage('✓ Valid course! Loading...', 'success');
         const target = code === 'EIS' ? 'eis-viewer.html' : `course-viewer.html?code=${encodeURIComponent(code)}`;
         setTimeout(() => location.href = target, 800);
       } else {
-        showMessage('Course does not exist.', 'error');
-        const addBtn = document.getElementById('addCourseBtn');
-        if (addBtn) addBtn.style.display = 'flex';
+        showMessage('✗ Course does not exist.', 'error');
+        document.getElementById('addCourseBtn').style.display = 'flex';
       }
     });
-  }
 
-  const courseInput = document.getElementById('course_id');
-  if (courseInput) {
-    courseInput.addEventListener('input', function(){
-      const code = this.value.trim().toUpperCase();
+    // real-time course check
+    document.getElementById('course_id').addEventListener('input', function () {
+      const code = this.value.trim();
       const msg = document.getElementById('validationMessage');
       const addBtn = document.getElementById('addCourseBtn');
-      if (!code){ if (msg) msg.textContent=''; if (addBtn) addBtn.style.display='none'; return; }
+      if (!code) { msg.textContent = ''; addBtn.style.display = 'none'; return; }
       const title = validateCourseCode(code);
-      if (title){ showMessage(`${title}`, 'success'); if (addBtn) addBtn.style.display='none'; }
-      else if (code.length>=3){ showMessage('Course not found.', 'error'); if (addBtn) addBtn.style.display='flex'; }
-      else if (addBtn) addBtn.style.display='none';
+      if (title) {
+        showMessage(`✓ ${title}`, 'success');
+        addBtn.style.display = 'none';
+      } else if (code.length >= 3) {
+        showMessage('✗ Course does not exist.', 'error');
+        addBtn.style.display = 'flex';
+      } else {
+        addBtn.style.display = 'none';
+      }
     });
-  }
 
-  const qs = new URLSearchParams(location.search);
-  const sid = qs.get('sid'), pwd = qs.get('pwd');
-  const sidInput = document.getElementById('student_id');
-  const pwdInput = document.getElementById('password');
-  if(sid && sidInput) sidInput.value = sid;
-  if(pwd && pwdInput) pwdInput.value = pwd;
+    // pre-fill from admin "Normal login"
+    (function () {
+      const qs = new URLSearchParams(location.search);
+      const sid = qs.get('sid'), pwd = qs.get('pwd');
+      if (sid) document.getElementById('student_id').value = sid;
+      if (pwd) document.getElementById('password').value = pwd;
+    })();
 
-  window.redirectToEditor = function(){
-    const code = document.getElementById('course_id')?.value.trim().toUpperCase();
-    location.href = code ? `course-editor.html?code=${encodeURIComponent(code)}` : 'course-editor.html';
-  };
-});
-</script>
+    function redirectToEditor() {
+      const code = document.getElementById('course_id').value.trim().toUpperCase();
+      location.href = code ? `course-editor.html?code=${encodeURIComponent(code)}` : 'course-editor.html';
+    }
+  </script>
+</body>
+</html>
